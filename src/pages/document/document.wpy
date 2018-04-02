@@ -1,0 +1,145 @@
+<script>
+  import wepy from 'wepy'
+  import ScrollView from '../../components/ScrollView'
+  import ListView from '../../components/ListView'
+  import DocumentItem from '../../components/DocumentItem'
+  import {pageSize, getCategory, getDocumentList} from '../../utils/HTTP/DocumentNetTool'
+
+  export default class extends wepy.page {
+    data = {
+      tabs: [],
+      selectTabsIndex: -1,
+      scrollViewTabs: [],
+      selectCategory: {},
+      list: [],
+      selectIndexChange: (index, tabs) => {
+        var tab = this.tabs[this.selectTabsIndex]
+        tab.selectIndex = index
+        this.selectCategory = tabs[index]
+
+        var list = this.selectCategory.list
+        if (list === undefined) {
+          list = []
+          this.$invoke('ListView', 'begainRefresh')
+        } else {
+          this.$invoke('ListView', this.selectCategory.isMoreData)
+          this.$invoke('ListView', 'startAnimation')
+        }
+        this.list = list
+        this.$apply()
+      },
+      getMoreData: () => {
+        this.getData()
+      },
+      refreshHandle: () => {
+        this.list = []
+        this.selectCategory.page = 1
+        this.$apply()
+        this.selectCategory.list = this.list
+        this.getData()
+      },
+      clickItem: item => {
+      }
+    }
+
+    getData() {
+      getDocumentList(this.selectCategory.page, this.selectCategory.id, data => {
+        this.list = this.list.concat(data)
+        this.selectCategory.list = this.list
+        this.selectCategory.page === 1 && this.$invoke('ListView', 'endRefresh')
+        let isMoreData = data.length === pageSize ? 'hasMoreData' : 'noMoreData'
+        this.selectCategory.isMoreData = isMoreData
+        this.$invoke('ListView', isMoreData)
+        data.length === pageSize && this.selectCategory.page++
+        this.$apply()
+      }, () => {
+        this.selectCategory.page === 1 && this.$invoke('ListView', 'endRefresh')
+      })
+    }
+
+    components = {
+      ListView,
+      ScrollView,
+      DocumentItem
+    }
+
+    onLoad(option) {
+      getCategory(data => {
+        for (var item of data) {
+          item.selectIndex = 0
+          for (var sub of item.sub) {
+            sub.page = 1
+          }
+        }
+        this.tabs = data
+        this.selectTab(0)
+        this.$apply()
+      }, () => {
+        this.$invoke('ListView', 'endRefresh')
+      })
+    }
+
+    selectTab(index) {
+      var item = this.tabs[index]
+      if (this.selectTabsIndex === index) { return }
+      this.selectTabsIndex = index
+      this.scrollViewTabs = item.sub
+      this.$invoke('ScrollView', 'select', item.selectIndex)
+      this.selectIndexChange(item.selectIndex, this.scrollViewTabs)
+    }
+
+    methods = {
+      clickTab(index) {
+        this.selectTab(index)
+      }
+    }
+  }
+</script>
+
+
+<template>
+  <view class="mainView">
+    <view class="topView">
+      <image mode="aspectFit" src="../../images/document/document_title.png"></image>
+      <view class="tab">
+          <view wx:for="{{tabs}}" wx:key="12" class="tabItem"
+                style="background-color: {{selectTabsIndex==index?'white':'#3B6653'}};color:{{index==selectTabsIndex?'#709685':'white'}} ;margin-right: {{index===tabs.length-1?'4':'0'}}rpx;"
+                @tap="clickTab({{index}})">{{item.name}}</view>
+      </view>
+      <ScrollView :scrollViewTabs.sync="scrollViewTabs" :selectIndexChange.sync="selectIndexChange"/>
+    </view>
+
+    <ListView :getMoreData.sync="getMoreData" :refreshHandle.sync="refreshHandle" minHeightPro="100">
+      <view slot="subView" style="width: 100%; height: 20rpx; background-color: white"></view>
+      <view slot="subView" class="lineView"></view>
+      <repeat for="{{list}}" slot="subView">
+        <DocumentItem :item.sync="item" :clickItem.sync="clickItem"/>
+      </repeat>
+    </ListView>
+    <view class="lineView lineViewGreen"></view>
+  </view>
+</template>
+
+
+<style>
+
+  .topView {
+    width: 100%; height: 200rpx; background-color: #709685; display: flex; flex-direction: column; align-items: center;
+  }
+  .topView image {
+    margin-top: 16rpx;height: 28rpx
+  }
+
+  .tab {
+    flex: 1; height: 100%; width: 100%; margin-top: 16rpx; display: flex; flex-direction: row;
+    color: white;
+  }
+
+  .tabItem {
+    flex: 1; margin-left: 4rpx; display: flex;
+    justify-content: center; align-items: center; font-size: 28rpx; font-weight: bold;
+    border-radius: 15rpx 15rpx 0 0;
+  }
+
+
+</style>

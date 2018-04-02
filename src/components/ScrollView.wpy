@@ -1,0 +1,243 @@
+<script>
+  import wepy from 'wepy'
+
+  export default class ScrollView extends wepy.component {
+    props = {
+      scrollViewTabs: {
+        type: Object,
+        default: []
+      },
+      selectIndexChange: {
+        type: Function
+      },
+      selectDefault: {
+        type: String,
+        default: null
+      }
+    }
+
+    data = {
+      maxCount: 5,
+      windowWidth: 0,
+      lineWidth: 0,
+
+      activeTab: 0,
+      lastActiveTab: 0,
+
+      lineViewLeft: 0,
+
+      tStart: false,
+
+      scrollViewTabsCount: 0,
+      offset: 0,
+      scrollLeft: 0,
+      topStartX: 0,
+      title: ''
+    }
+
+    onLoad() {
+      wepy.getSystemInfo({
+        success: (res) => {
+          this.windowWidth = res.windowWidth
+          this.$apply()
+        }
+      })
+    }
+
+    watch = {
+      scrollViewTabs(newV) {
+        this.scrollViewTabsCount = newV.length
+        if (this.scrollViewTabsCount > this.maxCount) {
+          this.scrollViewTabsCount = this.maxCount
+        }
+        this.lineWidth = this.windowWidth / this.scrollViewTabsCount
+        this.$apply()
+      }
+    }
+
+    select(index) {
+      this.activeTab = index
+      this.lastActiveTab = -1
+      this.$apply()
+    }
+
+    methods = {
+      handlerTabTap(index, e) {
+        if (this.activeTab === index) {
+          return
+        }
+        this.activeTab = index
+        this.lineViewLeft = this.windowWidth * index / this.scrollViewTabsCount
+        this._updateTopScrollView(e)
+      },
+      TopViewTouchStart(e) {
+        let {clientX} = e.touches[0]
+        this.topStartX = clientX
+        this.tStart = true
+      },
+
+      TopViewTouchMove(e) {
+        let {clientX} = e.touches[0]
+
+        let offsetX = this.topStartX - clientX
+        this.topStartX = clientX
+        this.scrollLeft += offsetX
+
+        let max = this.lineWidth * (this.scrollViewTabs.length - this.maxCount)
+
+        if (this.scrollLeft <= 0) {
+          this.scrollLeft = 0
+        } else if (this.scrollLeft >= max) {
+          this.scrollLeft = max
+        }
+      },
+      TopViewTouchEnd() {
+        this.tStart = false
+      }
+    }
+
+    _updateTopScrollView(e) {
+      if (this.lastActiveTab === this.activeTab) {
+        return
+      }
+      this.selectIndexChange && this.selectIndexChange(this.activeTab, this.scrollViewTabs)
+      let nextItemLeft = this.activeTab * this.lineWidth
+      if (nextItemLeft >= this.scrollLeft + this.lineWidth &&
+        nextItemLeft <= this.scrollLeft + this.lineWidth * 3) {
+        this.lastActiveTab = this.activeTab
+        return
+      }
+      if (this.lastActiveTab - this.activeTab > 0) {
+        this.scrollLeft = (this.activeTab - 1) * this.lineWidth
+      } else {
+        this.scrollLeft = (this.activeTab - this.maxCount + 2) * this.lineWidth
+      }
+
+      let max = (this.scrollViewTabs.length - this.scrollViewTabsCount) * this.lineWidth
+
+      if (this.scrollLeft < 0) {
+        this.scrollLeft = 0
+      } else if (this.scrollLeft > max) {
+        this.scrollLeft = max
+      }
+      this.lastActiveTab = this.activeTab
+    }
+  }
+</script>
+
+
+<template>
+  <view class="ScrollViewTabBar">
+    <!--<view class="ScrollViewscrollViewTabsTitle">{{title}}</view>-->
+    <!--<view class="ScrollViewscrollViewTabsTitleLineView"></view>-->
+    <view style="margin-left: -{{scrollLeft}}px;"
+          bindtouchstart="TopViewTouchStart" catchtouchmove="TopViewTouchMove" bindtouchend="TopViewTouchEnd"
+          class="ScrollViewTopView {{!tStart? 'withAnimate': ''}}">
+      <view class="ScrollViewTopViewEnum">
+        <repeat for='{{scrollViewTabs}}'>
+          <view @tap="handlerTabTap({{index}})" class="ScrollViewTab {{activeTab==index?'ScrollViewTabActive':''}}"
+                style="width: {{lineWidth}}px;  ">
+            <text>{{item.name}}</text>
+            <view style="background-color: {{activeTab==index?'#3B6653':'white'}}"></view>
+          </view>
+        </repeat>
+      </view>
+      <!--<view style="width: {{lineWidth}}px; margin-left: {{lineViewLeft}}px"-->
+            <!--class="ScrollViewUnderLine {{!tStart? 'withAnimate': ''}}"></view>-->
+    </view>
+  </view>
+
+</template>
+
+<style>
+
+  .ScrollViewscrollViewTabsTitle {
+    position: absolute;
+    width: 59px;
+    height: 80rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    background-color: white;
+    color: dodgerblue;
+  }
+
+  .ScrollViewscrollViewTabsTitleLineView {
+    position: absolute;
+    margin-left: 59px;
+    margin-top: 10rpx;
+    width: 1px;
+    height: 60rpx;
+    z-index: 101;
+    background-color: #bf3d2b;
+  }
+
+  .ScrollViewTopView {
+    /*padding-left: 60px;*/
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .ScrollViewTopViewEnum {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .withAnimate {
+    transition: all 100ms ease;
+    -webkit-transform: translate3d(0, 0, 0);
+    -moz-transform: translate3d(0, 0, 0);
+    -ms-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    -moz-backface-visibility: hidden;
+    -ms-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    -moz-perspective: 1000;
+    -ms-perspective: 1000;
+    perspective: 1000;
+  }
+
+  .ScrollViewTabBar {
+    width: 100%;
+    height: 80rpx;
+    display: flex;
+    flex-direction: row;
+    font-size: 24rpx;
+    color: white;
+    background-color: white;
+  }
+
+
+
+  .ScrollViewTab {
+    background-color: white;
+    color: #69736E;
+    height: 80rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  .ScrollViewTab view {
+    width: 8rpx; height: 8rpx; border-radius: 4rpx; margin-top: 10rpx;
+  }
+
+  .ScrollViewTabActive {
+    font-weight: bold;
+    color: #3B6653;
+  }
+
+  .ScrollViewUnderLine {
+    bottom: 0;
+    height: 6rpx;
+    background-color: #bf3d2b;
+  }
+
+
+
+</style>

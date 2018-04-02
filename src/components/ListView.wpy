@@ -1,0 +1,215 @@
+<script>
+  import wepy from 'wepy'
+
+  var status = {
+    normal: 'normal',
+    pulling: 'pulling', //松开刷新
+    will_refresh: 'will_refresh',
+    refreshing: 'refreshing',
+    end_refreshing: 'end_refreshing' // 回到起点的时候
+  }
+
+  export default class ListView extends wepy.component {
+    props = {
+      style: String,
+      getMoreData: {
+        type: Function
+      },
+      refreshHandle: {
+        type: Function
+      },
+      minHeightPro: {
+        type: String,
+        default: '0'
+      }
+    }
+
+    data = {
+      status: status.normal,
+      isTouch: false,
+      currentScrollTop: 0,
+      useScrollTop: false,
+      footerHidden: true,
+      isHasMoreData: true,
+      isGettingMoreData: false,
+      defaultStyle: 'flex: 1;display: flex;',
+      minHeight: 0,
+      intoViewID: ''
+    }
+
+    onLoad() {
+      wepy.getSystemInfo({
+        success: (res) => {
+          this.minHeight = res.windowHeight + 100 - parseInt(this.minHeightPro)
+          this.$apply()
+        }
+      })
+    }
+
+    endRefresh() {
+      this.setStatus(status.end_refreshing)
+    }
+
+    begainRefresh() {
+      this.setStatus(status.will_refresh)
+      this.footerHidden = true
+    }
+
+    hasMoreData() {
+      this.footerHidden = false
+      this.isHasMoreData = true
+      this.isGettingMoreData = false
+    }
+
+    noMoreData() {
+      this.footerHidden = true
+      this.isHasMoreData = false
+      this.isGettingMoreData = false
+    }
+
+    hiddenFooter() {
+      this.footerHidden = true
+    }
+
+    methods = {
+      bindtouchstart(e) {
+        this.isTouch = true
+      },
+      bindscroll(e) {
+        let {scrollTop} = e.detail
+        if (scrollTop < 50 && !this.isTouch && scrollTop > 0) {
+          this.startAnimation()
+        }
+      },
+      bindtouchend(e) {
+        this.isTouch = false
+        wx.createSelectorQuery().select('#scroll-view').scrollOffset(res => {
+          let scrollTop = res.scrollTop
+          if (scrollTop < 50 && scrollTop > 10) {
+            this.currentScrollTop = scrollTop
+            this.$apply()
+            this.startAnimation()
+          } else if (scrollTop <= 10) {
+            this.begainRefresh()
+          }
+        }).exec()
+      },
+      bindscrolltolower() {
+        if (this.isHasMoreData && this.getMoreData && !this.isGettingMoreData) {
+          this.getMoreData()
+          this.isGettingMoreData = true
+        }
+      }
+    }
+
+    setStatus(newStatus) {
+      if (this.status === newStatus) {
+        return
+      }
+      switch (newStatus) {
+        case status.normal: {
+          break
+        }
+        case status.pulling: {
+          break
+        }
+        case status.will_refresh: {
+          setTimeout(() => {
+            this.setStatus(status.refreshing)
+            this.$apply()
+          }, 500)
+          break
+        }
+        case status.refreshing: {
+          this.refreshHandle && this.refreshHandle()
+          this.startAnimation(0)
+          break
+        }
+        case status.end_refreshing: {
+          setTimeout(() => {
+            this.startAnimation()
+            this.setStatus(status.normal)
+          }, 200)
+          break
+        }
+      }
+      this.status = newStatus
+      this.$apply()
+    }
+
+    startAnimation(top = 50) {
+      if (this.currentScrollTop === top) {
+        var id = top === 50 ? 'intoViewID' : 'header'
+        if (this.intoViewID === id) { return }
+        this.intoViewID = id
+        // this.currentScrollTop = top === 50 ? 0 : 50
+        this.$apply()
+        setTimeout(() => {
+          this.intoViewID = ''
+          this.$apply()
+        }, 500)
+        return
+      }
+      setTimeout(() => {
+        this.currentScrollTop = top
+        this.$apply()
+      }, top === 50 ? 100 : 0)
+    }
+  }
+</script>
+
+
+<template>
+  <scroll-view id="scroll-view" scroll-y scroll-with-animation scroll-into-view="{{intoViewID}}" scroll-top="{{currentScrollTop}}"
+               bindtouchend="bindtouchend" bindscroll="bindscroll" bindtouchstart="bindtouchstart" style="{{defaultStyle+style}}"
+               bindscrolltolower="bindscrolltolower" lower-threshold="100">
+    <view id="scroll-view-main" style="min-height: {{minHeight}}px">
+      <view class="header" id="header">
+        <image mode="aspectFit" src="../images/loading_spinner.gif"/>
+      </view>
+      <view class="intoViewID" id="intoViewID"></view>
+      <slot name="subView"></slot>
+      <view class="header" hidden="{{footerHidden}}">
+        <image wx:if="{{isHasMoreData}}" mode="aspectFit" src="../images/loading_spinner.gif"/>
+        <text wx:else>已加载全部</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+
+<style>
+  .header {
+    width: 100%;
+    height: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 24rpx;
+    background-color: white;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10;
+    height: 50;
+  }
+
+  .header image {
+    width: 80rpx;
+    height: 80rpx;
+  }
+
+  #scroll-view-main {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background-color: white;
+  }
+
+  .intoViewID {
+    width: 750rpx;
+    height: 2rpx;
+    background-color: white;
+  }
+</style>

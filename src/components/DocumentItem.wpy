@@ -1,0 +1,123 @@
+<script>
+  import wepy from 'wepy'
+
+  export default class DocumentItem extends wepy.component {
+    props = {
+      item: {
+        type: Object
+      },
+      clickItem: {
+        type: Function
+      },
+      clickCancelHandle: {
+        type: Function
+      },
+      showCancel: {
+        type: Boolean
+      }
+    }
+
+    data = {
+      startX: 0,
+      left: 0,
+      delBtnWidth: 50,
+      tStart: false
+    }
+
+    onLoad() {
+    }
+
+    methods = {
+      click() {
+        this.clickItem && this.clickItem(this.item)
+      },
+      clickCancel() {
+        this.clickCancelHandle && this.clickCancelHandle(this.item)
+      }
+    }
+  }
+</script>
+
+
+<template>
+  <view class="DocumentItem">
+    <view>
+      <image class="DocumentItemImage" mode="aspectFit" src="../images/document/document_image.png"/>
+      <text class="imageText">{{item.title[0]}}</text>
+    </view>
+    <view class="DocumentItemInfo" @tap="click">
+      <view style="display: flex; flex-direction: row; justify-content: space-between">
+        <text class="DocumentItemTitle">{{item.title}}</text>
+        <image @tap.stop="clickCancel" wx:if="{{showCancel}}" style="align-self: center; width: 36rpx; height: 40rpx; margin-right: 30rpx" mode="aspectFit" src="../images/root/delete_icon.png"></image>
+      </view>
+      <text class="DocumentItemDetail">{{item.intro}}</text>
+      <view class="DocumentItemBottom">
+        <text>{{item.collect}} 收藏</text>
+      </view>
+    </view>
+  </view>
+  <view class="lineView"></view>
+</template>
+
+
+<style>
+  .DocumentItem {
+    display: flex;
+    flex-direction: row;
+    background-color: white;
+    width: 750rpx;
+  }
+
+  .imageText {
+    font-size: 72rpx; color: #709685;z-index: 10; position: absolute; left: 28rpx; margin-top: -20rpx; font-weight: bold;
+  }
+
+  .DocumentItemImage {
+    margin-left: 10rpx;
+    width: 92rpx;
+    height: 128rpx;
+    margin-top: -20rpx
+  }
+
+  .DocumentItemInfo {
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    width: 100%;
+    margin-left: 20rpx
+  }
+
+  .DocumentItemInfo text {
+    margin-right: 20rpx;
+    margin-top: 16rpx;
+    text-align: justify;
+  }
+
+  .DocumentItemTitle {
+    font-size: 36rpx;
+    font-weight: bold;
+    flex: 1;
+  }
+
+  .DocumentItemDetail {
+    margin-right: 30rpx;
+    font-size: 24rpx;
+    color: #333;
+    max-height: 100rpx;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .DocumentItemBottom {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 10rpx;
+    margin-top: 10rpx;
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 18rpx;
+    color: #8DAD9F;
+  }
+</style>

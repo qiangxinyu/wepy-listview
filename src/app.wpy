@@ -1,0 +1,90 @@
+<style lang="less">
+  page {
+    height: 100%;
+    width: 100%;
+    background-color: white;
+  }
+
+  text {
+    font-family: "PingFang SC";
+  }
+
+  .pageBottomView {
+    position: fixed;
+    width: 100%;
+    height: 90rpx;
+    bottom: 0rpx;
+    display: flex;
+    background-color: #3B6653;
+    font-size: 36rpx;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+
+  .mainView {
+    width: 750rpx;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .scrollViewMainView {
+    width: 100%;
+    display: flex;
+    flex-direction: column
+  }
+
+  .lineView {
+    width: 100%;
+    height: 2rpx;
+    background-color: #E9ECEB;
+  }
+
+  .lineViewGreen {
+    background-color: #8DAD9F;
+  }
+
+  .lineViewLeft {
+    margin-left: 30rpx;
+  }
+</style>
+
+<script>
+  import wepy from 'wepy'
+  import 'wepy-async-function'
+
+  import {setStore} from 'wepy-redux'
+  import configStore from './store'
+
+  const store = configStore()
+  setStore(store)
+
+  //0bb1020a2052cba52b479759e0cedecf
+
+  export default class extends wepy.app {
+    config = {
+      pages: [
+        'pages/document/document'
+      ],
+      window: {
+        disableScroll: true,
+        backgroundTextStyle: 'dark',
+        navigationBarBackgroundColor: '#3B6653',
+        navigationBarTitleText: 'WeChat',
+        backgroundColor: 'white'
+      }
+    }
+
+    globalData = {
+    }
+
+    constructor() {
+      super()
+      this.use('requestfix')
+    }
+
+    onLaunch() {
+    }
+  }
+</script>
